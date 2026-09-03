@@ -1,0 +1,28 @@
+resources:
+  pipelines:
+    hexagon_silver_sql_pipeline:
+      name: Ampol Hexagon Silver - Native SDP SQL Pipeline
+      catalog: ${var.catalog}
+      schema: ${var.silver_schema}
+      channel: CURRENT
+      serverless: true
+      libraries:
+        - file:
+            path: ../src/01_projects.sql
+        - file:
+            path: ../src/02_assets.sql
+        - file:
+            path: ../src/03_work_packages.sql
+        - file:
+            path: ../src/04_work_packages_steps.sql
+        - file:
+            path: ../src/05_work_package_details.sql
+        - file:
+            path: ../src/06_work_package_workflow_lists.sql
+        - file:
+            path: ../src/07_tasks_tests_planned_details.sql
+        - file:
+            path: ../src/08_task_step_instance_details.sql
+      configuration:
+        # Bronze source schema — referenced by SQL files via ${bronze_schema}
+        bronze_schema: ${var.bronze_schema}

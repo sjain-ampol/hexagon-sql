@@ -1,0 +1,34 @@
+# Declarative Automation Bundle — Ampol Hexagon Silver (Native SDP SQL)
+# Standalone SQL equivalent of the LakeFlow Framework silver pipeline.
+# Does NOT depend on or modify the existing ampol_hexagon_tni bundle.
+bundle:
+  name: ampol_hexagon_silver_sql
+
+include:
+  - resources/*.yml
+
+variables:
+  owner:
+    description: The owner of the bundle
+    default: ${workspace.current_user.userName}
+  catalog:
+    description: The target UC catalog
+    default: hexagon
+  silver_schema:
+    description: The target UC schema for the silver pipeline
+    default: hexagon_silver
+  bronze_schema:
+    description: The source UC schema for the bronze tables
+    default: hexagon_bronze
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-7405609870108503.3.azuredatabricks.net
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: hexagon
+      silver_schema: hexagon_silver
+      bronze_schema: hexagon_bronze
