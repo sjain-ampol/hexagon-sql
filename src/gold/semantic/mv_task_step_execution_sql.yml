@@ -1,0 +1,100 @@
+version: "1.1"
+comment: "Task-step, ITP and punch-list execution metrics"
+source: "{catalog}.{gold_schema}.fact_task_step_sql"
+
+joins:
+  - name: proj
+    source: "{catalog}.{gold_schema}.dim_project_sql"
+    "on": source.instance = proj.instance AND source.project = proj.project_id
+  - name: dim_completed_date
+    source: "{catalog}.{gold_schema}.dim_date_sql"
+    "on": source.completed_date_key = dim_completed_date.date_key
+
+dimensions:
+  - name: Project
+    expr: proj.project_name
+  - name: Work Package
+    expr: source.wp_name
+  - name: Unit
+    expr: source.process_breakdown_up2_summary
+  - name: Supervisor
+    expr: source.wp_scheduled_by
+  - name: Task Model
+    expr: source.task_model_name
+    comment: "TM / task model name"
+  - name: Task Type
+    expr: source.task_type
+  - name: Task Discipline
+    expr: source.task_discipline
+  - name: Task State
+    expr: source.task_state
+  - name: Equipment Number
+    expr: source.asset_tag
+    comment: "Tag / asset tag / equipment"
+  - name: Asset Type
+    expr: source.asset_type
+  - name: Asset Class
+    expr: source.asset_class
+  - name: Inspection Type
+    expr: source.inspection_type
+  - name: Client Hold Point Category
+    expr: source.step_action_category_client_hold_point
+    comment: "ITP client hold-point discipline category"
+  - name: Insp Answer
+    expr: source.insp_answer_filter
+    comment: "ITP slicer A/B/C"
+  - name: Punch Group
+    expr: source.punch_group
+    comment: "Punchlist v2 grouping (floor of step_sequence)"
+  - name: Task Description Category
+    expr: source.task_description_category
+    comment: "PUNCHLIST / OFFSITES / ITP / OTHERS"
+  - name: WP Complete Flag
+    expr: source.wp_complete_flag
+    comment: "WP Complete when handover step is completed"
+  - name: Completed By
+    expr: source.completed_by
+    comment: "Inspector / technician"
+  - name: Completed Date
+    expr: dim_completed_date.calendar_date
+  - name: Completed Month
+    expr: dim_completed_date.month_start_date
+  - name: Campaign Day
+    expr: dim_completed_date.ti_campaign_day
+
+measures:
+  - name: Total Steps
+    expr: COUNT(DISTINCT source.task_step_key)
+  - name: In-scope Steps
+    expr: COUNT(DISTINCT source.task_step_key) FILTER (WHERE source.is_in_scope_step)
+  - name: Completed Steps
+    expr: COUNT(DISTINCT source.task_step_key) FILTER (WHERE source.is_in_scope_step AND source.is_complete_step)
+  - name: Incomplete Steps
+    expr: COUNT(DISTINCT source.task_step_key) FILTER (WHERE source.is_in_scope_step AND NOT source.is_complete_step)
+  - name: Incomplete Required Steps
+    expr: COUNT(DISTINCT source.task_step_key) FILTER (WHERE source.is_incomplete_required_step)
+  - name: ITP Steps
+    expr: COUNT(DISTINCT source.task_step_key) FILTER (WHERE source.is_itp_step)
+  - name: ITP Completed Steps
+    expr: COUNT(DISTINCT source.task_step_key) FILTER (WHERE source.is_itp_step AND source.is_complete_step)
+  - name: Punch-list Items
+    expr: COUNT(DISTINCT source.task_step_key) FILTER (WHERE source.is_punchlist)
+    comment: "Punchlist / defects"
+  - name: Open Punch-list Items
+    expr: COUNT(DISTINCT source.task_step_key) FILTER (WHERE source.is_punchlist AND NOT source.is_complete_step)
+  - name: ITP WP Complete Rows
+    expr: COUNT(DISTINCT source.task_step_key) FILTER (WHERE source.wp_complete_flag = 'WP Complete')
+  - name: Equipment Count
+    expr: COUNT(DISTINCT source.asset_key)
+  - name: Step Completion Rate
+    expr: MEASURE(`Completed Steps`) / NULLIF(MEASURE(`In-scope Steps`), 0)
+  - name: ITP Completion Rate
+    expr: MEASURE(`ITP Completed Steps`) / NULLIF(MEASURE(`ITP Steps`), 0)
+  - name: Weighted Progress
+    expr: SUM(source.weighted_progress) / NULLIF(SUM(source.pct_weight), 0)
+  - name: Avg Days to Complete
+    expr: AVG(source.days_to_complete)
+  - name: Last Step Completed At
+    expr: MAX(source.completed_date)
+  - name: Data Effective At
+    expr: MAX(source.source_effective_at)

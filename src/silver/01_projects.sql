@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 01_projects.sql  |  hexagon_projects
--- Source: hexagon.hexagon_bronze.hexagon_projects_py
+-- Source: ${catalog}.${bronze_schema}.hexagon_projects_py
 -- Target: hexagon.hexagon_silver.projects_sql
 -- Keys:   INSTANCE, ID
 -- Seq:    load_timestamp  (no RecordLastModified on this entity)
@@ -8,7 +8,7 @@
 -- =============================================================================
 
 -- Streaming view: bronze PascalCase -> UPPER_SNAKE_CASE
-CREATE TEMPORARY STREAMING LIVE VIEW v_hexagon_projects AS
+CREATE TEMPORARY VIEW v_hexagon_projects AS
 SELECT
   Instances_Id                          AS INSTANCE,
   Id                                    AS ID,
@@ -22,7 +22,7 @@ SELECT
   _source_system,
   _source_table,
   current_timestamp()                   AS load_timestamp
-FROM STREAM(hexagon.hexagon_bronze.hexagon_projects_py);
+FROM STREAM(${catalog}.${bronze_schema}.hexagon_projects_py) WITH (SKIPCHANGECOMMITS);
 
 -- Target streaming table
 CREATE OR REFRESH STREAMING TABLE projects_sql
@@ -32,8 +32,8 @@ TBLPROPERTIES (
 );
 
 -- SCD Type 1 merge
-APPLY CHANGES INTO LIVE.projects_sql
-FROM STREAM(LIVE.v_hexagon_projects)
+CREATE FLOW cdc_projects_sql AS AUTO CDC INTO projects_sql
+FROM STREAM(v_hexagon_projects)
 KEYS (INSTANCE, ID)
 IGNORE NULL UPDATES
 SEQUENCE BY load_timestamp
@@ -44,18 +44,18 @@ STORED AS SCD TYPE 1;
 -- Recon flow: hard-delete reconciliation from hexagon_projects_recon
 -- =============================================================================
 
-CREATE TEMPORARY STREAMING LIVE VIEW v_recon_hexagon_projects AS
+CREATE TEMPORARY VIEW v_recon_hexagon_projects AS
 SELECT
   Instances_Id                                        AS INSTANCE,
   Id                                                  AS ID,
   if(hard_delete, false, cast(null as boolean))       AS ACTIVE_FLAG,
   dt_removed                                          AS DT_REMOVED,
   ingested_at                                         AS load_timestamp
-FROM STREAM(hexagon.hexagon_bronze.hexagon_projects_recon);
+FROM STREAM(${catalog}.${bronze_schema}.hexagon_projects_recon) WITH (SKIPCHANGECOMMITS);
 
 CREATE FLOW recon_projects_sql
-AS APPLY CHANGES INTO LIVE.projects_sql
-FROM STREAM(LIVE.v_recon_hexagon_projects)
+AS AUTO CDC INTO projects_sql
+FROM STREAM(v_recon_hexagon_projects)
 KEYS (INSTANCE, ID)
 IGNORE NULL UPDATES
 SEQUENCE BY load_timestamp

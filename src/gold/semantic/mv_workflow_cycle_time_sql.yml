@@ -1,0 +1,59 @@
+version: "1.1"
+comment: "Workflow approval throughput and stage dwell time"
+source: "{catalog}.{gold_schema}.fact_workflow_event_sql"
+
+joins:
+  - name: stage
+    source: "{catalog}.{gold_schema}.dim_workflow_stage_sql"
+    "on": source.workflow_stage_key = stage.workflow_stage_key
+  - name: proj
+    source: "{catalog}.{gold_schema}.dim_project_sql"
+    "on": source.instance = proj.instance AND source.project = proj.project_id
+  - name: dim_state_date
+    source: "{catalog}.{gold_schema}.dim_date_sql"
+    "on": source.state_date_key = dim_state_date.date_key
+
+dimensions:
+  - name: Project
+    expr: proj.project_name
+  - name: Workflow Stage
+    expr: stage.stage_label
+  - name: Stage Order
+    expr: stage.stage_order
+  - name: Responsible Role
+    expr: stage.responsible_role
+  - name: Work Package
+    expr: source.wp_name
+  - name: Discipline
+    expr: source.wp_discipline
+  - name: Actioned By
+    expr: source.resource_summary
+  - name: State Date
+    expr: dim_state_date.calendar_date
+  - name: State Month
+    expr: dim_state_date.month_start_date
+  - name: Campaign Day
+    expr: dim_state_date.ti_campaign_day
+
+measures:
+  - name: Workflow Events
+    expr: COUNT(DISTINCT source.workflow_event_key)
+  - name: Signed Events
+    expr: COUNT(DISTINCT source.workflow_event_key) FILTER (WHERE source.is_signed)
+  - name: Actioned Events
+    expr: COUNT(DISTINCT source.workflow_event_key) FILTER (WHERE source.is_actioned)
+  - name: Work Packages Touched
+    expr: COUNT(DISTINCT source.work_package_key)
+  - name: Avg Stage Dwell Hours
+    expr: AVG(source.hours_since_previous_state)
+    comment: "Avg hours in stage"
+  - name: Median Stage Dwell Hours
+    expr: PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY source.hours_since_previous_state)
+  - name: P90 Stage Dwell Hours
+    expr: PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY source.hours_since_previous_state)
+  - name: Sign-off Rate
+    expr: MEASURE(`Signed Events`) / NULLIF(MEASURE(`Workflow Events`), 0)
+  - name: First Event At
+    expr: MIN(source.state_date)
+  - name: Last Event At
+    expr: MAX(source.state_date)

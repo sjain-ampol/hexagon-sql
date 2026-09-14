@@ -72,6 +72,39 @@ databricks bundle deploy -t dev
 databricks bundle run hexagon_silver_sql_pipeline -t dev
 ```
 
+## Gold layer
+
+This bundle now includes the native SDP SQL equivalent of the AMPOL T&I gold setup,
+split into three orchestrated parts:
+
+1. `create_reference_tables` notebook task — creates / reseeds business-owned
+   reference tables in `${catalog}.${ref_schema}`:
+   * `ref_wallchart_rule_sql`
+   * `ref_wallchart_tm_inclusion_sql`
+2. `gold_sql_pipeline` — native SDP SQL materialized views in
+   `${catalog}.${gold_schema}`:
+   * `dim_date_sql`
+   * `dim_project_sql`
+   * `dim_workflow_stage_sql`
+   * `dim_wallchart_step_sql`
+   * `fact_task_step_sql`
+   * `fact_workflow_event_sql`
+   * `fact_work_package_status_sql`
+   * `fact_wallchart_cell_sql`
+3. `create_metric_views` notebook task — UC metric views in
+   `${catalog}.${gold_schema}`:
+   * `mv_task_step_execution_sql`
+   * `mv_workflow_cycle_time_sql`
+   * `mv_workpack_status_sql`
+   * `mv_wallchart_readiness_sql`
+
+The refresh chain is:
+`create_reference_tables -> gold_sql_pipeline -> create_metric_views`
+
+All gold targets, reference tables, and metric views carry the `_sql` suffix.
+Gold reads silver from `${catalog}.${silver_schema}.*_sql` and reads reference
+objects from `${catalog}.${ref_schema}.*_sql`.
+
 ## Conventions
 
 - Source tables are fully qualified (`hexagon.hexagon_bronze.*`).

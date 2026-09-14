@@ -2,7 +2,7 @@
 # Standalone SQL equivalent of the LakeFlow Framework silver pipeline.
 # Does NOT depend on or modify the existing ampol_hexagon_tni bundle.
 bundle:
-  name: ampol_hexagon_silver_sql
+  name: ampol_hexagon_sql
 
 include:
   - resources/*.yml
@@ -20,6 +20,15 @@ variables:
   bronze_schema:
     description: The source UC schema for the bronze tables
     default: hexagon_bronze
+  gold_schema:
+    description: The target UC schema for the gold pipeline
+    default: gold_tni
+  ref_schema:
+    description: The target UC schema for business-owned reference tables
+    default: tni_ref
+  tm_inclusion_volume_path:
+    description: UC Volume path to WallchartTMtable.xlsx
+    default: /Volumes/hexagon/tni_ref/reference_raw_files/ref_wallchart_tm_inclusion/WallchartTMtable_20260904.xlsx
 
 targets:
   dev:
@@ -32,3 +41,6 @@ targets:
       catalog: hexagon
       silver_schema: hexagon_silver
       bronze_schema: hexagon_bronze
+      gold_schema: gold_tni
+      ref_schema: tni_ref
+      tm_inclusion_volume_path: /Volumes/hexagon/tni_ref/reference_raw_files/ref_wallchart_tm_inclusion/WallchartTMtable_20260904.xlsx

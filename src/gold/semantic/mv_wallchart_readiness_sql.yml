@@ -1,0 +1,59 @@
+version: "1.1"
+comment: "Wallchart cell readiness by asset class and canonical step"
+source: "{catalog}.{gold_schema}.fact_wallchart_cell_sql"
+
+joins:
+  - name: step
+    source: "{catalog}.{gold_schema}.dim_wallchart_step_sql"
+    "on": source.wallchart_step_key = step.wallchart_step_key
+  - name: proj
+    source: "{catalog}.{gold_schema}.dim_project_sql"
+    "on": source.instance = proj.instance AND source.project = proj.project_id
+
+dimensions:
+  - name: Project
+    expr: proj.project_name
+  - name: Asset Class
+    expr: step.asset_class
+    comment: "Wallchart type / equipment class"
+  - name: Canonical Step
+    expr: step.canonical_step_label
+  - name: Step Display Label
+    expr: step.display_label
+  - name: Step Sequence
+    expr: step.step_sequence
+  - name: Answer Type
+    expr: step.answer_type
+  - name: Equipment Number
+    expr: source.equipment_no
+  - name: Work Package
+    expr: source.wp_name
+  - name: Task Model
+    expr: source.task_model_name
+  - name: Cell Status
+    expr: source.wallchart_status_code
+    comment: "Status / readiness"
+
+measures:
+  - name: Total Cells
+    expr: COUNT(DISTINCT source.wallchart_cell_key)
+  - name: Complete Cells
+    expr: COUNT(DISTINCT source.wallchart_cell_key) FILTER (WHERE source.wallchart_status_code = 'COMPLETE')
+  - name: Incomplete Cells
+    expr: COUNT(DISTINCT source.wallchart_cell_key) FILTER (WHERE source.wallchart_status_code = 'INCOMPLETE')
+  - name: Not Applicable Cells
+    expr: COUNT(DISTINCT source.wallchart_cell_key) FILTER (WHERE source.wallchart_status_code = 'NOT_APPLICABLE')
+  - name: Update Required Cells
+    expr: COUNT(DISTINCT source.wallchart_cell_key) FILTER (WHERE source.wallchart_status_code = 'UPDATE_REQUIRED')
+  - name: Applicable Cells
+    expr: COUNT(DISTINCT source.wallchart_cell_key) FILTER (WHERE source.wallchart_status_code <> 'NOT_APPLICABLE')
+  - name: Equipment Count
+    expr: COUNT(DISTINCT source.asset_key)
+  - name: Wallchart Readiness
+    expr: MEASURE(`Complete Cells`) / NULLIF(MEASURE(`Applicable Cells`), 0)
+    comment: "Excludes NOT_APPLICABLE from the denominator"
+  - name: Ambiguous Match Cells
+    expr: COUNT(DISTINCT source.wallchart_cell_key) FILTER (WHERE source.source_match_count > 1)
+    comment: "Data-quality guard. Target zero — overlapping wallchart match phrases."
+  - name: Data Effective At
+    expr: MAX(source.data_effective_at)

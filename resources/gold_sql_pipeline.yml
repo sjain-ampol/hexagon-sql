@@ -1,0 +1,29 @@
+resources:
+  pipelines:
+    gold_sql_pipeline:
+      name: Ampol Hexagon Gold - Native SDP SQL Pipeline
+      catalog: ${var.catalog}
+      schema: ${var.gold_schema}
+      channel: CURRENT
+      serverless: true
+      libraries:
+        - file:
+            path: ../src/gold/dim_date_sql.sql
+        - file:
+            path: ../src/gold/dim_project_sql.sql
+        - file:
+            path: ../src/gold/dim_workflow_stage_sql.sql
+        - file:
+            path: ../src/gold/dim_wallchart_step_sql.sql
+        - file:
+            path: ../src/gold/fact_task_step_sql.sql
+        - file:
+            path: ../src/gold/fact_workflow_event_sql.sql
+        - file:
+            path: ../src/gold/fact_work_package_status_sql.sql
+        - file:
+            path: ../src/gold/fact_wallchart_cell_sql.sql
+      configuration:
+        catalog: ${var.catalog}
+        silver_schema: ${var.silver_schema}
+        ref_schema: ${var.ref_schema}

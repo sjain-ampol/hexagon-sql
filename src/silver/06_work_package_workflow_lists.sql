@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 06_work_package_workflow_lists.sql  |  hexagon_work_package_workflow_lists
--- Source: hexagon.hexagon_bronze.hexagon_work_package_workflow_lists_py
+-- Source: ${catalog}.${bronze_schema}.hexagon_work_package_workflow_lists_py
 -- Target: hexagon.hexagon_silver.work_package_workflow_lists_sql
 -- Keys:   INSTANCE, WORK_PACKAGE_DETAILS_ID, ID
 -- Seq:    _scd_sequence = coalesce(StateDate, ResourceStateDate, _ingested_at)
@@ -10,7 +10,7 @@
 --         ACTIVE_FLAG is always true.
 -- =============================================================================
 
-CREATE TEMPORARY STREAMING LIVE VIEW v_hexagon_work_package_workflow_lists AS
+CREATE TEMPORARY VIEW v_hexagon_work_package_workflow_lists AS
 SELECT
   Instances_Id                                              AS INSTANCE,
   cast(null as bigint)                                      AS PROJECT,
@@ -36,7 +36,7 @@ SELECT
   _source_table,
   current_timestamp()                                       AS load_timestamp,
   coalesce(StateDate, ResourceStateDate, _ingested_at)      AS _scd_sequence
-FROM STREAM(hexagon.hexagon_bronze.hexagon_work_package_workflow_lists_py);
+FROM STREAM(${catalog}.${bronze_schema}.hexagon_work_package_workflow_lists_py) WITH (SKIPCHANGECOMMITS);
 
 CREATE OR REFRESH STREAMING TABLE work_package_workflow_lists_sql
 TBLPROPERTIES (
@@ -44,8 +44,8 @@ TBLPROPERTIES (
   'delta.enableRowTracking'    = 'true'
 );
 
-APPLY CHANGES INTO LIVE.work_package_workflow_lists_sql
-FROM STREAM(LIVE.v_hexagon_work_package_workflow_lists)
+CREATE FLOW cdc_work_package_workflow_lists_sql AS AUTO CDC INTO work_package_workflow_lists_sql
+FROM STREAM(v_hexagon_work_package_workflow_lists)
 KEYS (INSTANCE, WORK_PACKAGE_DETAILS_ID, ID)
 IGNORE NULL UPDATES
 SEQUENCE BY _scd_sequence
@@ -57,7 +57,7 @@ STORED AS SCD TYPE 1;
 -- hexagon_work_package_workflow_lists_recon
 -- =============================================================================
 
-CREATE TEMPORARY STREAMING LIVE VIEW v_recon_hexagon_work_package_workflow_lists AS
+CREATE TEMPORARY VIEW v_recon_hexagon_work_package_workflow_lists AS
 SELECT
   Instances_Id                                        AS INSTANCE,
   WorkPackageDetails_Id                               AS WORK_PACKAGE_DETAILS_ID,
@@ -66,11 +66,11 @@ SELECT
   dt_removed                                          AS DT_REMOVED,
   ingested_at                                         AS _scd_sequence,
   current_timestamp()                                 AS load_timestamp
-FROM STREAM(hexagon.hexagon_bronze.hexagon_work_package_workflow_lists_recon);
+FROM STREAM(${catalog}.${bronze_schema}.hexagon_work_package_workflow_lists_recon) WITH (SKIPCHANGECOMMITS);
 
 CREATE FLOW recon_work_package_workflow_lists_sql
-AS APPLY CHANGES INTO LIVE.work_package_workflow_lists_sql
-FROM STREAM(LIVE.v_recon_hexagon_work_package_workflow_lists)
+AS AUTO CDC INTO work_package_workflow_lists_sql
+FROM STREAM(v_recon_hexagon_work_package_workflow_lists)
 KEYS (INSTANCE, WORK_PACKAGE_DETAILS_ID, ID)
 IGNORE NULL UPDATES
 SEQUENCE BY _scd_sequence

@@ -1,13 +1,13 @@
 -- =============================================================================
 -- 02_assets.sql  |  hexagon_assets
--- Source: hexagon.hexagon_bronze.hexagon_assets_py
+-- Source: ${catalog}.${bronze_schema}.hexagon_assets_py
 -- Target: hexagon.hexagon_silver.assets_sql
 -- Keys:   INSTANCE, ASSET_ID, WORK_BREAKDOWN_UP3_ID  (NOT Id)
 -- Seq:    _scd_sequence = coalesce(RecordLastModified, _ingested_at)
 -- Except: load_timestamp, _scd_sequence
 -- =============================================================================
 
-CREATE TEMPORARY STREAMING LIVE VIEW v_hexagon_assets AS
+CREATE TEMPORARY VIEW v_hexagon_assets AS
 SELECT
   Instances_Id                                AS INSTANCE,
   WorkBreakdownUp3Id                          AS PROJECT,
@@ -96,7 +96,7 @@ SELECT
   _source_table,
   current_timestamp()                         AS load_timestamp,
   coalesce(RecordLastModified, _ingested_at)  AS _scd_sequence
-FROM STREAM(hexagon.hexagon_bronze.hexagon_assets_py);
+FROM STREAM(${catalog}.${bronze_schema}.hexagon_assets_py) WITH (SKIPCHANGECOMMITS);
 
 CREATE OR REFRESH STREAMING TABLE assets_sql
 TBLPROPERTIES (
@@ -104,8 +104,8 @@ TBLPROPERTIES (
   'delta.enableRowTracking'    = 'true'
 );
 
-APPLY CHANGES INTO LIVE.assets_sql
-FROM STREAM(LIVE.v_hexagon_assets)
+CREATE FLOW cdc_assets_sql AS AUTO CDC INTO assets_sql
+FROM STREAM(v_hexagon_assets)
 KEYS (INSTANCE, ASSET_ID, WORK_BREAKDOWN_UP3_ID)
 IGNORE NULL UPDATES
 SEQUENCE BY _scd_sequence
@@ -116,7 +116,7 @@ STORED AS SCD TYPE 1;
 -- Recon flow: hard-delete reconciliation from hexagon_assets_recon
 -- =============================================================================
 
-CREATE TEMPORARY STREAMING LIVE VIEW v_recon_hexagon_assets AS
+CREATE TEMPORARY VIEW v_recon_hexagon_assets AS
 SELECT
   Instances_Id                                        AS INSTANCE,
   AssetId                                             AS ASSET_ID,
@@ -125,11 +125,11 @@ SELECT
   dt_removed                                          AS DT_REMOVED,
   ingested_at                                         AS _scd_sequence,
   current_timestamp()                                 AS load_timestamp
-FROM STREAM(hexagon.hexagon_bronze.hexagon_assets_recon);
+FROM STREAM(${catalog}.${bronze_schema}.hexagon_assets_recon) WITH (SKIPCHANGECOMMITS);
 
 CREATE FLOW recon_assets_sql
-AS APPLY CHANGES INTO LIVE.assets_sql
-FROM STREAM(LIVE.v_recon_hexagon_assets)
+AS AUTO CDC INTO assets_sql
+FROM STREAM(v_recon_hexagon_assets)
 KEYS (INSTANCE, ASSET_ID, WORK_BREAKDOWN_UP3_ID)
 IGNORE NULL UPDATES
 SEQUENCE BY _scd_sequence

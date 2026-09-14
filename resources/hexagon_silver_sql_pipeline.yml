@@ -8,21 +8,23 @@ resources:
       serverless: true
       libraries:
         - file:
-            path: ../src/01_projects.sql
+            path: ../src/silver/01_projects.sql
         - file:
-            path: ../src/02_assets.sql
+            path: ../src/silver/02_assets.sql
         - file:
-            path: ../src/03_work_packages.sql
+            path: ../src/silver/03_work_packages.sql
         - file:
-            path: ../src/04_work_packages_steps.sql
+            path: ../src/silver/04_work_packages_steps.sql
         - file:
-            path: ../src/05_work_package_details.sql
+            path: ../src/silver/05_work_package_details.sql
         - file:
-            path: ../src/06_work_package_workflow_lists.sql
+            path: ../src/silver/06_work_package_workflow_lists.sql
         - file:
-            path: ../src/07_tasks_tests_planned_details.sql
+            path: ../src/silver/07_tasks_tests_planned_details.sql
         - file:
-            path: ../src/08_task_step_instance_details.sql
+            path: ../src/silver/08_task_step_instance_details.sql
       configuration:
         # Bronze source schema — referenced by SQL files via ${bronze_schema}
         bronze_schema: ${var.bronze_schema}
+        catalog: ${var.catalog}
+

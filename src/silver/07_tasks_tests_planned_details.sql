@@ -1,13 +1,13 @@
 -- =============================================================================
 -- 07_tasks_tests_planned_details.sql  |  hexagon_tasks_tests_planned_details
--- Source: hexagon.hexagon_bronze.hexagon_tasks_tests_planned_details_py
+-- Source: ${catalog}.${bronze_schema}.hexagon_tasks_tests_planned_details_py
 -- Target: hexagon.hexagon_silver.tasks_tests_planned_details_sql
 -- Keys:   INSTANCE, ID
 -- Seq:    _scd_sequence = coalesce(RecordLastModified, _ingested_at)
 -- Except: load_timestamp, _scd_sequence
 -- =============================================================================
 
-CREATE TEMPORARY STREAMING LIVE VIEW v_hexagon_tasks_tests_planned_details AS
+CREATE TEMPORARY VIEW v_hexagon_tasks_tests_planned_details AS
 SELECT
   Instances_Id                                AS INSTANCE,
   WorkBreakdownUp3Id                          AS PROJECT,
@@ -142,7 +142,7 @@ SELECT
   _source_table,
   current_timestamp()                         AS load_timestamp,
   coalesce(RecordLastModified, _ingested_at)  AS _scd_sequence
-FROM STREAM(hexagon.hexagon_bronze.hexagon_tasks_tests_planned_details_py);
+FROM STREAM(${catalog}.${bronze_schema}.hexagon_tasks_tests_planned_details_py) WITH (SKIPCHANGECOMMITS);
 
 CREATE OR REFRESH STREAMING TABLE tasks_tests_planned_details_sql
 TBLPROPERTIES (
@@ -150,8 +150,8 @@ TBLPROPERTIES (
   'delta.enableRowTracking'    = 'true'
 );
 
-APPLY CHANGES INTO LIVE.tasks_tests_planned_details_sql
-FROM STREAM(LIVE.v_hexagon_tasks_tests_planned_details)
+CREATE FLOW cdc_tasks_tests_planned_details_sql AS AUTO CDC INTO tasks_tests_planned_details_sql
+FROM STREAM(v_hexagon_tasks_tests_planned_details)
 KEYS (INSTANCE, ID)
 IGNORE NULL UPDATES
 SEQUENCE BY _scd_sequence
@@ -163,7 +163,7 @@ STORED AS SCD TYPE 1;
 -- hexagon_tasks_tests_planned_details_recon
 -- =============================================================================
 
-CREATE TEMPORARY STREAMING LIVE VIEW v_recon_hexagon_tasks_tests_planned_details AS
+CREATE TEMPORARY VIEW v_recon_hexagon_tasks_tests_planned_details AS
 SELECT
   Instances_Id                                        AS INSTANCE,
   Id                                                  AS ID,
@@ -171,11 +171,11 @@ SELECT
   dt_removed                                          AS DT_REMOVED,
   ingested_at                                         AS _scd_sequence,
   current_timestamp()                                 AS load_timestamp
-FROM STREAM(hexagon.hexagon_bronze.hexagon_tasks_tests_planned_details_recon);
+FROM STREAM(${catalog}.${bronze_schema}.hexagon_tasks_tests_planned_details_recon) WITH (SKIPCHANGECOMMITS);
 
 CREATE FLOW recon_tasks_tests_planned_details_sql
-AS APPLY CHANGES INTO LIVE.tasks_tests_planned_details_sql
-FROM STREAM(LIVE.v_recon_hexagon_tasks_tests_planned_details)
+AS AUTO CDC INTO tasks_tests_planned_details_sql
+FROM STREAM(v_recon_hexagon_tasks_tests_planned_details)
 KEYS (INSTANCE, ID)
 IGNORE NULL UPDATES
 SEQUENCE BY _scd_sequence

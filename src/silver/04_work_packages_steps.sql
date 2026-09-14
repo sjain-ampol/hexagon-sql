@@ -1,33 +1,54 @@
 -- =============================================================================
--- 08_task_step_instance_details.sql  |  hexagon_task_step_instance_details
--- Source: hexagon.hexagon_bronze.hexagon_task_step_instance_details_py
--- Target: hexagon.hexagon_silver.task_step_instance_details_sql
--- Keys:   INSTANCE, PROJECT, ID
+-- 04_work_packages_steps.sql  |  hexagon_work_packages_steps
+-- Source: ${catalog}.${bronze_schema}.hexagon_work_packages_steps_py
+-- Target: hexagon.hexagon_silver.work_packages_steps_sql
+-- Keys:   INSTANCE, WORK_PACKAGES__ID, ID   (double underscore is exact)
 -- Seq:    _scd_sequence = coalesce(RecordLastModified, _ingested_at)
 -- Except: load_timestamp, _scd_sequence
 -- =============================================================================
 
-CREATE TEMPORARY STREAMING LIVE VIEW v_hexagon_task_step_instance_details AS
+CREATE TEMPORARY VIEW v_hexagon_work_packages_steps AS
 SELECT
   Instances_Id                                AS INSTANCE,
-  Projects_Id                                 AS PROJECT,
+  WorkBreakdownUp3Id                          AS PROJECT,
   Id                                          AS ID,
+  WorkPackages_Id                             AS WORK_PACKAGES__ID,
+  AccessCode                                  AS ACCESS_CODE,
+  cast(ActualMH as double)                    AS ACTUAL_MH,
+  cast(ActualWTV as double)                   AS ACTUAL_WTV,
+  AssetId                                     AS ASSET_ID,
+  AssetPackId                                 AS ASSET_PACK_ID,
   AssetPackName                               AS ASSET_PACK_NAME,
   AssetTag                                    AS ASSET_TAG,
-  Comment                                     AS COMMENT,
-  CompanyInstanceId                           AS COMPANY_INSTANCE_ID,
+  cast(BudgetMH as double)                    AS BUDGET_MH,
+  CanAddStep                                  AS CAN_ADD_STEP,
+  CheckInOutResource                          AS CHECK_IN_OUT_RESOURCE,
+  CheckInOutResourceId                        AS CHECK_IN_OUT_RESOURCE_ID,
+  CheckedInDate                               AS CHECKED_IN_DATE,
+  CheckedOutDate                              AS CHECKED_OUT_DATE,
+  Comments                                    AS COMMENTS,
   CompletedBy                                 AS COMPLETED_BY,
+  CompletedById                               AS COMPLETED_BY_ID,
   CompletedDate                               AS COMPLETED_DATE,
   DocumentId                                  AS DOCUMENT_ID,
+  DocumentName                                AS DOCUMENT_NAME,
+  cast(EVMH as double)                        AS EVMH,
+  FIWP,
+  FWCId                                       AS FWC_ID,
+  FWV,
+  IWPId                                       AS IWP_ID,
+  IWPName                                     AS IWP_NAME,
+  IgnoreStep                                  AS IGNORE_STEP,
   InspAnswer                                  AS INSP_ANSWER,
   InspectionType                              AS INSPECTION_TYPE,
-  IsNa                                        AS IS_NA,
+  InspectionTypeId                            AS INSPECTION_TYPE_ID,
+  IsCheckedOut                                AS IS_CHECKED_OUT,
+  IsNA                                        AS IS_NA,
   IsNaDisabled                                AS IS_NA_DISABLED,
-  IsPunchlist                                 AS IS_PUNCHLIST,
   IsStepRequired                              AS IS_STEP_REQUIRED,
+  LoopId                                      AS LOOP_ID,
   LoopName                                    AS LOOP_NAME,
   cast(OrderSequence as bigint)               AS ORDER_SEQUENCE,
-  ParameterReading                            AS PARAMETER_READING,
   ParameterReading1                           AS PARAMETER_READING1,
   ParameterReading2                           AS PARAMETER_READING2,
   ParameterReading3                           AS PARAMETER_READING3,
@@ -43,25 +64,40 @@ SELECT
   ParameterReading13                          AS PARAMETER_READING13,
   ParameterReading14                          AS PARAMETER_READING14,
   ParameterReading15                          AS PARAMETER_READING15,
-  PctWeight                                   AS PCT_WEIGHT,
-  PunchlistItem                               AS PUNCHLIST_ITEM,
+  ParentId                                    AS PARENT_ID,
+  PlanEndDate                                 AS PLAN_END_DATE,
+  PlanStartDate                               AS PLAN_START_DATE,
+  cast(PlanWTV as double)                     AS PLAN_WTV,
   RecordCreated                               AS RECORD_CREATED,
   RecordCreatedBy                             AS RECORD_CREATED_BY,
+  RecordCreatedById                           AS RECORD_CREATED_BY_ID,
   RecordLastModified                          AS RECORD_LAST_MODIFIED,
   RecordLastModifiedBy                        AS RECORD_LAST_MODIFIED_BY,
+  RecordLastModifiedById                      AS RECORD_LAST_MODIFIED_BY_ID,
   RecordRemovedBy                             AS RECORD_REMOVED_BY,
+  RecordRemovedById                           AS RECORD_REMOVED_BY_ID,
+  ShowHeader                                  AS SHOW_HEADER,
+  ShowLabel                                   AS SHOW_LABEL,
   StepAction                                  AS STEP_ACTION,
-  StepAnswer                                  AS STEP_ANSWER,
   StepAnswerId                                AS STEP_ANSWER_ID,
-  StepAnswerMap                               AS STEP_ANSWER_MAP,
-  StepIntialsDate                             AS STEP_INTIALS_DATE,
+  StepAnswerNCId                              AS STEP_ANSWER_NC_ID,
+  StepHeaders                                 AS STEP_HEADERS,
+  StepParameters                              AS STEP_PARAMETERS,
+  StepQuestion                                AS STEP_QUESTION,
   StepSequence                                AS STEP_SEQUENCE,
-  StepType                                    AS STEP_TYPE,
+  StepSequenceId                              AS STEP_SEQUENCE_ID,
   StepTypeId                                  AS STEP_TYPE_ID,
   TaskId                                      AS TASK_ID,
   TaskName                                    AS TASK_NAME,
-  TaskStepId                                  AS TASK_STEP_ID,
+  WPId                                        AS WP_ID,
+  WPName                                      AS WP_NAME,
+  WPStepId                                    AS WP_STEP_ID,
+  WPStepName                                  AS WP_STEP_NAME,
+  WVUoM                                       AS WV_UOM,
   WorkBreakdownUp3Id                          AS WORK_BREAKDOWN_UP3_ID,
+  WorkStepType                                AS WORK_STEP_TYPE,
+  WorkStepTypeId                              AS WORK_STEP_TYPE_ID,
+  WorkVolumeType                              AS WORK_VOLUME_TYPE,
   dtRemoved                                   AS DT_REMOVED,
   (dtRemoved is null)                         AS ACTIVE_FLAG,
   cast(session_user() as string)              AS LOADED_BY,
@@ -71,42 +107,41 @@ SELECT
   _source_table,
   current_timestamp()                         AS load_timestamp,
   coalesce(RecordLastModified, _ingested_at)  AS _scd_sequence
-FROM STREAM(hexagon.hexagon_bronze.hexagon_task_step_instance_details_py);
+FROM STREAM(${catalog}.${bronze_schema}.hexagon_work_packages_steps_py) WITH (SKIPCHANGECOMMITS);
 
-CREATE OR REFRESH STREAMING TABLE task_step_instance_details_sql
+CREATE OR REFRESH STREAMING TABLE work_packages_steps_sql
 TBLPROPERTIES (
   'delta.enableChangeDataFeed' = 'true',
   'delta.enableRowTracking'    = 'true'
 );
 
-APPLY CHANGES INTO LIVE.task_step_instance_details_sql
-FROM STREAM(LIVE.v_hexagon_task_step_instance_details)
-KEYS (INSTANCE, PROJECT, ID)
+CREATE FLOW cdc_work_packages_steps_sql AS AUTO CDC INTO work_packages_steps_sql
+FROM STREAM(v_hexagon_work_packages_steps)
+KEYS (INSTANCE, WORK_PACKAGES__ID, ID)
 IGNORE NULL UPDATES
 SEQUENCE BY _scd_sequence
 COLUMNS * EXCEPT (load_timestamp, _scd_sequence)
 STORED AS SCD TYPE 1;
 
 -- =============================================================================
--- Recon flow: hard-delete reconciliation from
--- hexagon_task_step_instance_details_recon
+-- Recon flow: hard-delete reconciliation from hexagon_work_packages_steps_recon
 -- =============================================================================
 
-CREATE TEMPORARY STREAMING LIVE VIEW v_recon_hexagon_task_step_instance_details AS
+CREATE TEMPORARY VIEW v_recon_hexagon_work_packages_steps AS
 SELECT
   Instances_Id                                        AS INSTANCE,
-  Projects_Id                                         AS PROJECT,
+  WorkPackages_Id                                     AS WORK_PACKAGES__ID,
   Id                                                  AS ID,
   if(hard_delete, false, cast(null as boolean))       AS ACTIVE_FLAG,
   dt_removed                                          AS DT_REMOVED,
   ingested_at                                         AS _scd_sequence,
   current_timestamp()                                 AS load_timestamp
-FROM STREAM(hexagon.hexagon_bronze.hexagon_task_step_instance_details_recon);
+FROM STREAM(${catalog}.${bronze_schema}.hexagon_work_packages_steps_recon) WITH (SKIPCHANGECOMMITS);
 
-CREATE FLOW recon_task_step_instance_details_sql
-AS APPLY CHANGES INTO LIVE.task_step_instance_details_sql
-FROM STREAM(LIVE.v_recon_hexagon_task_step_instance_details)
-KEYS (INSTANCE, PROJECT, ID)
+CREATE FLOW recon_work_packages_steps_sql
+AS AUTO CDC INTO work_packages_steps_sql
+FROM STREAM(v_recon_hexagon_work_packages_steps)
+KEYS (INSTANCE, WORK_PACKAGES__ID, ID)
 IGNORE NULL UPDATES
 SEQUENCE BY _scd_sequence
 COLUMNS * EXCEPT (load_timestamp, _scd_sequence)

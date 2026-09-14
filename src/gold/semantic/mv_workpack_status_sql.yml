@@ -1,0 +1,137 @@
+version: "1.1"
+comment: "Governed AMPOL T&I work-package status, completion and cycle-time metrics"
+source: "{catalog}.{gold_schema}.fact_work_package_status_sql"
+
+joins:
+  - name: stage
+    source: "{catalog}.{gold_schema}.dim_workflow_stage_sql"
+    "on": source.workflow_stage_key = stage.workflow_stage_key
+  - name: proj
+    source: "{catalog}.{gold_schema}.dim_project_sql"
+    "on": source.instance = proj.instance AND source.project = proj.project_id
+  - name: created_date
+    source: "{catalog}.{gold_schema}.dim_date_sql"
+    "on": source.record_created_date_key = created_date.date_key
+
+dimensions:
+  - name: Project
+    expr: proj.project_name
+    comment: "Turnaround / campaign / T&I project"
+  - name: Project Identifier
+    expr: proj.project_identifier
+  - name: Work Package
+    expr: source.wp_name
+    comment: "Work order / workpack / WP"
+  - name: Work Package Description
+    expr: source.wp_description
+  - name: Workflow Stage
+    expr: stage.stage_label
+    comment: "Status / state / stage"
+  - name: Stage Order
+    expr: stage.stage_order
+  - name: Stage Group
+    expr: stage.stage_group
+    comment: "Phase"
+  - name: Responsible Role
+    expr: stage.responsible_role
+    comment: "Owner role / accountable team"
+  - name: Unit
+    expr: source.process_breakdown_up2_summary
+    comment: "Process unit / area"
+  - name: Process Breakdown
+    expr: source.process_breakdown
+  - name: Supervisor
+    expr: source.wp_scheduled_by
+    comment: "Scheduled by / foreman"
+  - name: Responsible Company
+    expr: source.responsible_company
+    comment: "Contractor / vendor"
+  - name: Discipline
+    expr: source.wp_discipline
+  - name: Priority
+    expr: source.wp_priority
+  - name: Work Package Type
+    expr: source.work_package_type
+  - name: Job Category
+    expr: source.job_category
+  - name: Record Date
+    expr: created_date.calendar_date
+  - name: Record Month
+    expr: created_date.month_start_date
+    comment: "Month"
+  - name: Campaign Day
+    expr: created_date.ti_campaign_day
+    comment: "T&I day / day number"
+  - name: Campaign Phase
+    expr: created_date.ti_campaign_phase
+
+measures:
+  - name: Total Work Packages
+    expr: COUNT(DISTINCT source.work_package_key)
+    comment: "Work package count / WP count"
+  - name: QA Prep
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 1.0)
+  - name: Inspection Review
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 2.0)
+  - name: Ops Review
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 3.0)
+  - name: TA Coordinator Review
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 4.0)
+  - name: Issued to Supervisor
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 5.1)
+    comment: "5A"
+  - name: QA Walkdown
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 5.2)
+    comment: "5B / ready for walkdown"
+  - name: Issued to Field
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 7.0)
+  - name: Inspection Walkdown
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 8.0)
+  - name: Ops Walkdown
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 9.0)
+  - name: TA Coordinator Walkdown
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 10.0)
+  - name: Completed Work Packages
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 11.0)
+    comment: "Closed / WP complete"
+  - name: Unknown Stage Work Packages
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 99.0)
+    comment: "Data-quality guard. Should always be zero."
+  - name: In Progress Work Packages
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order < 11.0)
+  - name: Overdue Work Packages
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE source.is_overdue)
+    comment: "Late / behind schedule"
+  - name: Work Packages with Punch-list
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE source.punchlist_step_count > 0)
+  - name: In-scope Steps
+    expr: SUM(source.in_scope_step_count)
+  - name: Completed Steps
+    expr: SUM(source.completed_step_count)
+  - name: Incomplete Steps
+    expr: SUM(source.incomplete_step_count)
+  - name: Punch-list Steps
+    expr: SUM(source.punchlist_step_count)
+  - name: Step Completion Rate
+    expr: MEASURE(`Completed Steps`) / NULLIF(MEASURE(`In-scope Steps`), 0)
+  - name: Work Package Completion Rate
+    expr: MEASURE(`Completed Work Packages`) / NULLIF(MEASURE(`Total Work Packages`), 0)
+  - name: Ready for Walkdown Rate
+    expr: MEASURE(`QA Walkdown`) / NULLIF(MEASURE(`Total Work Packages`), 0)
+  - name: Avg Days in Current Stage
+    expr: AVG(source.days_in_current_stage)
+  - name: Avg Cycle Time Originate to Issue
+    expr: AVG(source.cycle_time_days_originate_to_issue)
+  - name: Avg Cycle Time Issue to Complete
+    expr: AVG(source.cycle_time_days_issue_to_complete)
+  - name: Avg Total Cycle Time
+    expr: AVG(source.cycle_time_days_total)
+  - name: Budget Manhours
+    expr: SUM(source.budget_mh)
+  - name: Actual Manhours
+    expr: SUM(source.actual_mh)
+  - name: Manhour Variance
+    expr: MEASURE(`Actual Manhours`) - MEASURE(`Budget Manhours`)
+  - name: Data Effective At
+    expr: MAX(source.data_effective_at)
+    comment: "Drives the dashboard freshness header. Never use a Power BI refresh timestamp."
