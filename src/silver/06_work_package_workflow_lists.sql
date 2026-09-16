@@ -39,6 +39,7 @@ SELECT
 FROM STREAM(${catalog}.${bronze_schema}.hexagon_work_package_workflow_lists_py) WITH (SKIPCHANGECOMMITS);
 
 CREATE OR REFRESH STREAMING TABLE work_package_workflow_lists_sql
+CLUSTER BY (INSTANCE, WORK_PACKAGE_DETAILS_ID, ID)
 TBLPROPERTIES (
   'delta.enableChangeDataFeed' = 'true',
   'delta.enableRowTracking'    = 'true'

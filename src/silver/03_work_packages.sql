@@ -125,6 +125,7 @@ SELECT
 FROM STREAM(${catalog}.${bronze_schema}.hexagon_work_packages_py) WITH (SKIPCHANGECOMMITS);
 
 CREATE OR REFRESH STREAMING TABLE work_packages_sql
+CLUSTER BY (INSTANCE, ID)
 TBLPROPERTIES (
   'delta.enableChangeDataFeed' = 'true',
   'delta.enableRowTracking'    = 'true'

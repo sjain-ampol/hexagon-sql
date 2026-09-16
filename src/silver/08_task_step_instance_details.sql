@@ -74,6 +74,7 @@ SELECT
 FROM STREAM(${catalog}.${bronze_schema}.hexagon_task_step_instance_details_py) WITH (SKIPCHANGECOMMITS);
 
 CREATE OR REFRESH STREAMING TABLE task_step_instance_details_sql
+CLUSTER BY (INSTANCE, PROJECT, ID)
 TBLPROPERTIES (
   'delta.enableChangeDataFeed' = 'true',
   'delta.enableRowTracking'    = 'true'

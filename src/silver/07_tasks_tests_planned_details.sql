@@ -145,6 +145,7 @@ SELECT
 FROM STREAM(${catalog}.${bronze_schema}.hexagon_tasks_tests_planned_details_py) WITH (SKIPCHANGECOMMITS);
 
 CREATE OR REFRESH STREAMING TABLE tasks_tests_planned_details_sql
+CLUSTER BY (INSTANCE, ID)
 TBLPROPERTIES (
   'delta.enableChangeDataFeed' = 'true',
   'delta.enableRowTracking'    = 'true'

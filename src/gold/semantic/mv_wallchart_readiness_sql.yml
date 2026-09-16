@@ -28,6 +28,9 @@ dimensions:
     expr: source.equipment_no
   - name: Work Package
     expr: source.wp_name
+  - name: Supervisor
+    expr: source.supervisor
+    comment: "WP scheduled by / foreman"
   - name: Task Model
     expr: source.task_model_name
   - name: Cell Status

@@ -28,6 +28,9 @@ dimensions:
     expr: source.task_discipline
   - name: Task State
     expr: source.task_state
+  - name: Step Comment
+    expr: source.step_comment
+    comment: "Task-step comment from Hexagon"
   - name: Equipment Number
     expr: source.asset_tag
     comment: "Tag / asset tag / equipment"

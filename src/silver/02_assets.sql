@@ -99,7 +99,9 @@ SELECT
 FROM STREAM(${catalog}.${bronze_schema}.hexagon_assets_py) WITH (SKIPCHANGECOMMITS);
 
 CREATE OR REFRESH STREAMING TABLE assets_sql
+CLUSTER BY (INSTANCE, ASSET_ID, WORK_BREAKDOWN_UP3_ID)
 TBLPROPERTIES (
+  'delta.dataSkippingStatsColumns' = 'INSTANCE, ASSET_ID, WORK_BREAKDOWN_UP3_ID',
   'delta.enableChangeDataFeed' = 'true',
   'delta.enableRowTracking'    = 'true'
 );

@@ -54,6 +54,12 @@ dimensions:
     expr: source.work_package_type
   - name: Job Category
     expr: source.job_category
+  - name: Inspection Subcategory
+    expr: source.field003
+    comment: "FIELD003 discipline sub-category (Insp / Rotating / E&I)"
+  - name: WF Comments
+    expr: source.wf_comments
+    comment: "Workflow comments from work package details"
   - name: Record Date
     expr: created_date.calendar_date
   - name: Record Month
@@ -94,6 +100,33 @@ measures:
   - name: Completed Work Packages
     expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 11.0)
     comment: "Closed / WP complete"
+  - name: Cumulative QA Prep
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE source.originated_at IS NOT NULL)
+    comment: "Initial signatures — WPs that reached or passed QA Prep"
+  - name: Cumulative Inspection Review
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE source.inspection_reviewed_at IS NOT NULL)
+    comment: "Initial signatures — WPs that reached or passed Inspection Review"
+  - name: Cumulative Ops Review
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE source.ops_reviewed_at IS NOT NULL)
+    comment: "Initial signatures — WPs that reached or passed Ops Review"
+  - name: Cumulative TA Coordinator Review
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE source.ta_reviewed_at IS NOT NULL)
+    comment: "Initial signatures — WPs that reached or passed TA Coordinator Review"
+  - name: Cumulative Issued
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE source.issued_at IS NOT NULL)
+    comment: "WPs that reached or passed Issued"
+  - name: Cumulative Inspection Walkdown
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE source.inspection_walkdown_at IS NOT NULL)
+    comment: "Final signatures — WPs that reached or passed Inspection Walkdown"
+  - name: Cumulative Ops Walkdown
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE source.ops_walkdown_at IS NOT NULL)
+    comment: "Final signatures — WPs that reached or passed Ops Walkdown"
+  - name: Cumulative TA Coordinator Walkdown
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE source.ta_walkdown_at IS NOT NULL)
+    comment: "Final signatures — WPs that reached or passed TA Coordinator Walkdown"
+  - name: Cumulative Completed
+    expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE source.completed_at IS NOT NULL)
+    comment: "Final signatures — WPs that reached WP Complete"
   - name: Unknown Stage Work Packages
     expr: COUNT(DISTINCT source.work_package_key) FILTER (WHERE stage.stage_order = 99.0)
     comment: "Data-quality guard. Should always be zero."

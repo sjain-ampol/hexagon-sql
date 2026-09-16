@@ -135,6 +135,7 @@ SELECT
   ts.step_sequence,
   ts.order_sequence,
   ts.step_action,
+  ts.comment AS step_comment,
   ts.step_answer,
   ts.insp_answer,
   ts.inspection_type,

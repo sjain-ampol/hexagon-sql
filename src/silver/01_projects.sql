@@ -26,6 +26,7 @@ FROM STREAM(${catalog}.${bronze_schema}.hexagon_projects_py) WITH (SKIPCHANGECOM
 
 -- Target streaming table
 CREATE OR REFRESH STREAMING TABLE projects_sql
+CLUSTER BY (INSTANCE, ID)
 TBLPROPERTIES (
   'delta.enableChangeDataFeed' = 'true',
   'delta.enableRowTracking'    = 'true'
