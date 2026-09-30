@@ -4,6 +4,10 @@ resources:
       name: Ampol Hexagon Silver - Native SDP SQL Pipeline
       catalog: ${var.catalog}
       schema: ${var.silver_schema}
+      event_log:
+        catalog: ${var.catalog}
+        schema: ${var.silver_schema}
+        name: event_log_sql
       channel: CURRENT
       serverless: true
       libraries:

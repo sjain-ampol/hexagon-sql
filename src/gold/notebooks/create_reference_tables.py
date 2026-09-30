@@ -55,7 +55,7 @@ SOURCE_OF_TRUTH_RULE_SQL = Path(
 )
 
 _TM_INCLUSION_ID_COLUMNS = frozenset(
-    {"Project", "ProjectIdentifier", "ProjectName", "Summary", "Offsite TM", "EWR TM"}
+    {"Project", "ProjectIdentifier", "ProjectName", "Summary"}
 )
 
 
@@ -99,6 +99,10 @@ def _asset_class_from_column(column_name: str) -> Optional[str]:
         return "CV"
     if column_name.startswith("Exchangers"):
         return "EXCH"
+    if column_name.startswith("EWR"):        # NEW
+        return "EWR"
+    if column_name.startswith("Offsite"):    # NEW
+        return "OFFSITE"
     return None
 
 
